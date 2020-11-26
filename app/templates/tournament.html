@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test application</title>
+        <link rel="stylesheet" type="text/css" href = {{ url_for('static', filename='tournament.css') }} />
+    </head>
+    <body>
+        <div class="navbar">
+            <a href=#>{{ title }}</a>
+            <a class ="right" href="{{ url_for('live_tournaments') }}">Live Tournaments</a>
+            <a class ="right" href="{{ url_for('finished_tournaments') }}">Finished Tournaments</a>
+            <a class ="right" href="{{ url_for('index') }}">Home</a>
+        </div>
+        {% for tournament, results in tournaments.items() %}
+        <div class="tournament">
+            <div class="card-title">
+                <h2>{{ tournament }}</h2>
+                <p>{{ results[-1] }}</p>
+                <div class="tags">
+                    <div>More</div>
+                </div>
+            </div>
+            {% for i in range(results|length-1) %}
+            <div class="card-container">
+                <a href="{{ url_for('matches', filename = results[i]['file_name']) }}">
+                    <div class="card">
+                        <header class="article-header">
+                            <div>
+                                <div class="category-title">
+                                    <span class="date">{{ results[i]['Date'] }}</span>
+                                </div>
+                            </div>
+                            <h2 class="article-title">
+                                {{ results[i]['Player 1'] }} vs {{ results[i]['Player 2'] }}
+                            </h2>
+                        </header>
+                        <div class="tags">
+                            <div>{{ results[i]['Round'] }}</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </body>
+</html>
