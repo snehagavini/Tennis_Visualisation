@@ -14,7 +14,8 @@ def get_matches_list(df, size = True):
         df = df.iloc[:5]
     
     results = df.to_dict('records', into=OrderedDict)
-    results.append(length)
+    if size:
+        results.append(length)
 
     return results
 
