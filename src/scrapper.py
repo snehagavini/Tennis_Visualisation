@@ -9,6 +9,26 @@ import csv
 import os
 from datetime import datetime, timedelta
 
+def create_match_files(match_urls, current):
+    if len(match_urls) == 0:
+        print("No Live Matches going on right now")
+        return False
+
+    # for each url get a df
+    for match in match_urls:
+        finished_df, fixed_data = get_rows(match)
+        if not fixed_data:
+            continue
+        file_name = get_file_name(fixed_data)
+        
+        if not os.path.exists(f'./data/{file_name}.csv'):
+            write_matches_csv(fixed_data, file_name)
+        if not os.path.exists(f'./data/{file_name}.csv') or current:       
+            finished_df.to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
+        
+        time.sleep(0.5)
+
+    return True
 
 def get_matches(finished_url, date, current = False):
     if not current:
@@ -17,24 +37,8 @@ def get_matches(finished_url, date, current = False):
         soup = get_url(finished_url)
     match_anchors = soup.findAll("a",{"title":"H2H stats - match details"})
     match_urls = [i["href"] for i in match_anchors]
-
-    if len(match_urls) == 0:
-        print("No Live Matches going on right now")
-        return False
-
-    # for each url get a df
-    for match in match_urls:
-        finished_df, fixed_data = get_rows(match)
-        file_name = get_file_name(fixed_data)
-        if not os.path.exists(f'./data/{file_name}.csv') or current:       
-            finished_df.to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
-        if not os.path.exists(f'./data/{file_name}.csv'):
-            write_matches_csv(fixed_data, file_name)
-        time.sleep(0.5)
-
-    return True  
-    
-
+    return create_match_files(match_urls, current)
+      
 def get_col_names():
     return ['player1_name',
             'player2_name',
@@ -55,6 +59,8 @@ def get_rows(match):
     match_html = get_url(match)
     fixed_data = get_static_data(match_html)
     scores_data = get_dynamic_data(match_html)
+    if not scores_data:
+        return False, False
     rows = list()
     for k,v in scores_data.items():
         for score,points in v.items():
@@ -68,7 +74,7 @@ def merge_static_dynamic(set,score,points,fixed_data):
                 'player2': fixed_data['player2_name'],
                 'set':set,
                 'p1_score':score.split('-')[0],
-                'p2_score':score.split('-')[1],
+                'p2_score': score.split('-')[1] if len(score.split('-'))>1 else '',
                 'server':points[-1],
                 'points': 0,
                 'break_point': '',
@@ -81,8 +87,7 @@ def merge_static_dynamic(set,score,points,fixed_data):
     for i in range(len(points)-1):
         if 'BP' in points[i]:
             row_list['break_point'] = 'BP'
-        else:
-            row_list['points'] = points[i].replace('[BP]','')
+        row_list['points'] = points[i].replace('[BP]','')
         
         result_list.append(list(row_list.values()))
     
@@ -104,6 +109,8 @@ def get_dynamic_data(match_html):
     dynamic_data = dict()
     for set in range(len(set_tables)):
         dynamic_data[set+1] = get_scores(set_tables[set])
+        if not dynamic_data[set+1]:
+            return False
 
     return dynamic_data
 
@@ -114,6 +121,8 @@ def get_scores(set_table):
     score_dict = dict()
     for row_index in range(0,len(rows), 2):
         score , serve = get_current_score(rows[row_index])
+        if not score and not serve:
+            return False
         points = get_points(rows[row_index + 1])
         points.append(serve)
         score_dict[score] = points
@@ -122,13 +131,16 @@ def get_scores(set_table):
 
 # Correct the function reflect the score and the serve
 def get_current_score(row):
-    server = row.text
-    score = ''
-    
-    cells = row.findAll("td")
-    score = cells[1].text
-    server = server.replace(score,'')
-    return score, server
+    try:
+        server = row.text
+        score = ''
+        
+        cells = row.findAll("td")
+        score = cells[1].text
+        server = server.replace(score,'')
+        return score, server
+    except Exception as  e:
+        return False, False 
 
 # make the point to win in the last row i.e, if win=True
 def get_points(row):
@@ -183,8 +195,13 @@ def write_matches_csv(fixed_data, file_name):
     rnd = fixed_data['round']
     p1 = fixed_data['player1_name']
     p2 = fixed_data['player2_name']
+    index_date = date.split(' ')[0] + '20'
+    index_date = index_date.split('.')
+    index_date.reverse()
+    index_date = '-'.join(index_date)
 
-    match_row = pd.DataFrame.from_records([[tour, date, rnd, p1, p2, file_name]], columns = ['Tournament', 'Date', 'Round', 'Player 1', 'Player 2', 'file_name'])
+
+    match_row = pd.DataFrame.from_records([[tour, date, rnd, p1, p2, file_name, index_date]], columns = ['Tournament', 'Date', 'Round', 'Player 1', 'Player 2', 'file_name', 'index_date'])
 
 
     if os.path.exists(f'./data/matches.csv'):       
@@ -206,6 +223,8 @@ def get_parser():
     parser.add_argument('--from_date',type = check_date)
     parser.add_argument('--to_date' , type = check_date)
     parser.add_argument('--match_date',type = check_date)
+    parser.add_argument('--debug', action = 'store_true')
+    parser.add_argument('--url')
     return parser
 
 def generate_dates(from_date, to_date):
@@ -247,14 +266,17 @@ def main():
             dates = generate_dates(args.from_date,args.to_date)
 
         elif args.match_date:
-            mdate = datetime.strptime(match_date, '%Y-%m-%d')
+            mdate = datetime.strptime(args.match_date, '%Y-%m-%d')
             curr_date = datetime.today()
             if curr_date < mdate:
                 raise ValueError("Incorrect data, please enter a past date")            
-            dates.append(mdate)
+            dates.append(mdate.strftime('%Y-%m-%d'))
 
         for date_ in dates:
             get_matches(fin_url, date_, current = False)
+    
+    elif args.debug and args.url:
+        create_match_files([args.url], current=True)
     else:
         print("Usage: python src\scrapper.py -h")
 
