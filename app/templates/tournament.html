@@ -14,16 +14,18 @@
         {% for tournament, results in tournaments.items() %}
         <div class="tournament">
             <div class="card-title">
-                <h2>{{ tournament }}</h2>
-                <p>{{ results[-1] }}</p>
+                <div class="tournament-title">
+                    <h2>{{ tournament }}: </h2>
+                    <p>{{ results[-1] }} {% if results[-1] == 1 %}match{% else %}matches{% endif %} </p>
+                </div>
                 <div class="tags">
                     <a href = "{{ url_for(matches_url, tournament = tournament) }}">
-                        <div>More</div>
+                        <div>View More</div>
                     </a>
                 </div>
             </div>
-            {% for i in range(results|length-1) %}
             <div class="card-container">
+                {% for i in range(results|length-1) %}
                 <a href = "{{ url_for('matches', filename = results[i]['file_name']) }}">
                     <div class="card">
                         <header class="article-header">
@@ -33,16 +35,19 @@
                                 </div>
                             </div>
                             <h2 class="article-title">
-                                {{ results[i]['Player 1'] }} vs {{ results[i]['Player 2'] }}
+                                {{ results[i]['Player 1'] }} <br/><span class="date">vs</span><br/> {{ results[i]['Player 2'] }}
                             </h2>
                         </header>
                         <div class="tags">
                             <div>{{ results[i]['Round'] }}</div>
+                            {% if title == 'Live Tournaments' %}
+                            <div class="Live">Live</div>
+                            {% endif %}
                         </div>
                     </div>
                 </a>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
         {% endfor %}
     </body>

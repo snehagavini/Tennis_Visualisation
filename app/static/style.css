@@ -5,7 +5,8 @@
   body {
     font-family: Arial, Helvetica, sans-serif;
     text-align: center;
-    background-color: rgb(113, 129, 76);
+    background-color: #100e17;
+    color: #fff;
   }
 
   .container{

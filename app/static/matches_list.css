@@ -1,3 +1,7 @@
+body {
+    background-color: #100e17;
+}
+
 /* top navigation bar */
 .navbar {
     overflow: hidden;
@@ -41,6 +45,6 @@
 /* removing the text-decoration */
 a {
     text-decoration: none;
-    color: wheat;
+    color: rgb(151, 114, 45);
 
 }

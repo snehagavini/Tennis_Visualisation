@@ -23,9 +23,11 @@ app.layout = html.Div(
 )
 
 @app.callback(Output('table', 'data'),
+              Output('table', 'columns'),
               [Input('url', 'pathname')])
 def display_page(pathname):
-    return pd.read_csv(f'./data{pathname}.csv').to_dict('records')
+    df = pd.read_csv(f'./data{pathname}.csv')
+    return df.to_dict("records"), [{"name": i, "id": i} for i in df.columns]
 
 if __name__ == "__main__":
     app.run_server(debug=True)
