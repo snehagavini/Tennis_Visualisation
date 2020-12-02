@@ -35,9 +35,33 @@
                                 </div>
                             </div>
                             <h2 class="article-title">
-                                {{ results[i]['Player_1'] }} <br/><span class="date">vs</span><br/> {{ results[i]['Player_2'] }}
+                                {{ results[i]['Player_1'] }} 
+                                {% if results[i]['Player_1'] == results[i]['won'] %}
+                                <span class='result'>
+                                    {% if title == 'Live Tournaments' %}
+                                        lead
+                                    {% else %}
+                                        won
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+                                <br/><span class="date">vs</span><br/> 
+                                {{ results[i]['Player_2'] }}
+                                {% if results[i]['Player_2'] == results[i]['won'] %}
+                                <span class='result'>
+                                    {% if title == 'Live Tournaments' %}
+                                        lead
+                                    {% else %}
+                                        won
+                                    {% endif %}
+                                </span>
+                                {% endif %}
+
                             </h2>
                         </header>
+                        <div>
+                            <div class="name">{{ results[i]['result'] }}</div>
+                        </div>
                         <div class="tags">
                             <div>{{ results[i]['Round'] }}</div>
                             {% if title == 'Live Tournaments' %}

@@ -72,7 +72,7 @@ def insert_data(fixed_data, file_name, status, url):
     data.append(file_name)
     data.append(index_date)
     data.append(won)
-    data.append(result)
+    data.append(fixed_data['result'])
     data.append(status)
     data.append(url)
 
