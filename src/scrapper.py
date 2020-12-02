@@ -84,12 +84,36 @@ def insert_data(fixed_data, file_name, status, url):
         data = tuple(data)
         conn.update_data(update_match_sql(), data)
 
+def move_live(match_urls):
+
+    if conn.check_row('matches', 'status', 'live'):
+        rows = conn.select_data(force_write_sql(), ('live',))
+        
+        db_urls = list()
+        for row in rows:
+            db_urls.append(row[-1])
+        
+        moved_urls = list()
+        for url in db_urls:
+            if url not in match_urls:
+                moved_urls.append(url)
+        
+        for url in moved_urls:
+            create_match_files([url], False, True)
+
+def move_all_live():
+    if conn.check_row('matches', 'status', 'live'):
+        rows = conn.select_data(force_write_sql(), ('live',))
+        for row in rows:
+            create_match_files([row[-1]], False, True)        
+
 def create_match_files(match_urls, current, force_write = False):
+    
+    if current:
+        move_live(match_urls)
+
     if len(match_urls) == 0:
-        if conn.check_row('matches', 'status', 'live'):
-            rows = conn.select_data(force_write_sql(), ('live',))
-            for row in rows:
-                create_match_files([row[-1]], '', True)
+        move_all_live()
         print("No Live Matches going on right now")
         return False
 
@@ -194,8 +218,11 @@ def get_static_data(match_html):
     return static_data
 
 def get_clean_result(match_html):
-    span = match_html.find("span", {"id": "score"})
-    return span.find(text=True, recursive= False)
+    span = match_html.find("span", attrs={"id": "score"})
+    tags = span.findAll()
+    for tag in tags:
+        tag.extract()
+    return "".join(span.findAll(text=True))
 
 def get_dynamic_data(match_html):
     scores_div = match_html.find("div", {"id": "ff_p"})
