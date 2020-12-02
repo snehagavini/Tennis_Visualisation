@@ -51,7 +51,7 @@ class db(object):
         Query tasks by condition
         """
         cur = self.conn.cursor()
-        cur.execute(sql, (condition,))
+        cur.execute(sql, condition)
 
         rows = cur.fetchall()
 

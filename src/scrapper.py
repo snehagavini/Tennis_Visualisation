@@ -87,7 +87,7 @@ def insert_data(fixed_data, file_name, status, url):
 def create_match_files(match_urls, current, force_write = False):
     if len(match_urls) == 0:
         if conn.check_row('matches', 'status', 'live'):
-            rows = conn.select_data(force_write_sql(), 'live')
+            rows = conn.select_data(force_write_sql(), ('live',))
             for row in rows:
                 create_match_files([row[-1]], '', True)
         print("No Live Matches going on right now")

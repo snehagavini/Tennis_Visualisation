@@ -2,6 +2,37 @@ import pandas as pd
 
 from datetime import datetime, timedelta
 from collections import OrderedDict
+from .db import db
+
+def create_database():
+    """
+    Initialize a database and create the table if not present and return True
+    """
+    global conn
+    conn = db('./data/db/matches.db')
+    conn.create_table(create_match_sql())
+
+def create_match_sql():
+    return """CREATE TABLE IF NOT EXISTS matches (
+                Tournament text NOT NULL,
+                Date text NOT NULL,
+                Round text NOT NULL,
+                Player_1 text NOT NULL,
+                Player_2 text NOT NULL,
+                file_name text NOT NULL,
+                index_date text NOT NULL,
+                won text NOT NULL,
+                result text NOT NULL,
+                status text NOT NULL,
+                url text
+            );"""
+
+def tournament_sql():
+    return "SELECT * FROM matches WHERE status=?"
+
+def matches_sql():
+    return "SELECT * FROM matches WHERE Tournament=? AND status=?"
+
 
 def get_past_date(days = 0):
     format = '%Y-%m-%d'
@@ -19,45 +50,34 @@ def get_matches_list(df, size = True):
 
     return results
 
-def get_tournaments(live, **kwargs):
-    matches = pd.read_csv('./data/matches.csv')
-    matches['index_date'] = pd.to_datetime(matches['index_date'], format = '%Y-%m-%d')
-    tour = False
+def get_tournaments(live):
+
     results = dict()
-
+    create_database()
+    
     if live:
-        curr_date = kwargs['curr_date']
-        tournaments = matches[matches['index_date'] == curr_date]
-        tour = True
+        tournaments = conn.select_data(tournament_sql(), ('live',))
     elif not live:
-        start = kwargs['start']
-        end = kwargs['end']
-        tournaments = matches[(matches['index_date'] >= start) & (matches['index_date'] <= end)]
-        tour = True
+        tournaments = conn.select_data(tournament_sql(), ('finished',))
 
-    if tour:
-        tourn_list = tournaments['Tournament'].value_counts().index.to_list()
-        for tournament in tourn_list:
-            results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament])
+    tournaments = pd.DataFrame(tournaments, columns = ['Tournament','Date','Round','Player_1','Player_2','file','index','won','result','status','url'])
+    tourn_list = tournaments['Tournament'].value_counts().index.to_list()
+    for tournament in tourn_list:
+        results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament])
+    conn.close()
     return results
 
 def get_matches(tournament, live, **kwargs):
-    matches = pd.read_csv('./data/matches.csv')
-    matches['index_date'] = pd.to_datetime(matches['index_date'], format = '%Y-%m-%d')
-    tour = False
+
     results = dict()
+    create_database()
 
     if live:
-        curr_date = kwargs['curr_date']
-        tournaments = matches[(matches['Tournament'] == tournament) & (matches['index_date'] == curr_date)]
-        tour = True
+        tournaments = conn.select_data(matches_sql(), (tournament, 'live'))
     elif not live:
-        start = kwargs['start']
-        end = kwargs['end']
-        tournaments = matches[(matches['Tournament'] == tournament) & (matches['index_date'] >= start) & (matches['index_date'] <= end)]
-        tour = True
-
-    if tour:
-        results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament], False)
+        tournaments = conn.select_data(matches_sql(), (tournament, 'finished'))
+    tournaments = pd.DataFrame(tournaments, columns = ['Tournament','Date','Round','Player_1','Player_2','file','index','won','result','status','url'])
+    results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament], False)
+    
     return results
     
