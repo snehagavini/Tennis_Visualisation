@@ -25,8 +25,17 @@
               {% for i in matches[title] %}
               <li class="table-row">
                 <div class="col col-1" data-label="Date">{{ i['Date'] }}</div>
-                <div class="col col-2" data-label="Player 1">{{ i['Player 1'] }}</div>
-                <div class="col col-3" data-label="Player 2">{{ i['Player 2'] }}</div>
+                {% if i['Player_1'] == i['won'] %}
+                  <div class="col col-2" data-label="Player 1" style="color:green">{{ i['Player_1'] }}</div>
+                {% else %}
+                  <div class="col col-2" data-label="Player 1">{{ i['Player_1'] }}</div>
+                {% endif %}
+                
+                {% if i['Player_2'] == i['won'] %}
+                  <div class="col col-3" data-label="Player 2" style="color:green">{{ i['Player_2'] }}</div>
+                {% else %}
+                  <div class="col col-3" data-label="Player 2">{{ i['Player_2'] }}</div>
+                {% endif %}
                 <div class="col col-4" data-label="Round">{{ i['Round'] }}</div>
                 <div class="col col-5" data-label="Details"><a href = "{{ url_for('matches', filename = i['file_name']) }}">Link</a></div>
               </li>
