@@ -1,7 +1,5 @@
 import pandas as pd
 import argparse
-import sqlite3
-from sqlite3 import Error
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 from string import punctuation
@@ -10,10 +8,88 @@ import csv
 import os
 from datetime import datetime, timedelta
  
+import db
+
+def create_database():
+    """
+    Initialize a database and create the table if not present and return True
+    """
+    global conn
+    conn = db('./data/db/matches.db')
+    conn.create_table(create_match_sql())
+
+def create_match_sql():
+    return """CREATE TABLE IF NOT EXISTS matches (
+                Tournament text NOT NULL,
+                Date text NOT NULL,
+                Round text NOT NULL,
+                Player_1 text NOT NULL,
+                Player_2 text NOT NULL,
+                file_name text NOT NULL,
+                index_date text NOT NULL,
+                won text NOT NULL,
+                result text NOT NULL,
+                status text NOT NULL,
+                url text
+            );"""
+
+def insert_match_sql():
+    return ''' INSERT INTO projects(Tournament, Date, Round, Player_1, Player_2, file_name, index-date, won, result, status, url)
+              VALUES(?,?,?,?,?,?,?,?,?,?,?) '''
+
+def update_match_sql():
+    return ''' UPDATE matches
+               SET  Tournament = ?,
+                    Date = ?,
+                    Round = ?,
+                    Player_1 = ?,
+                    Player_2 = ?,
+                    file_name = ?,
+                    index-date = ?,
+                    won = ?,
+                    result = ?,
+                    status = ?,
+                    url = ?,
+              WHERE file_name = ?'''
+
+def force_write_sql():
+    return "SELECT * FROM matches WHERE status=?"
+
+def insert_data(fixed_data, file_name, status, url):
+    keys = ['tournament','date','round','player1_name','player2_name']
+    data = list()
+    for i in keys:
+        data.append(fixed_data[i])
+    
+    date = fixed_data['date']
+    index_date = date.split(' ')[0] + '20'
+    index_date = index_date.split('.')
+    index_date.reverse()
+    index_date = '-'.join(index_date)
+    result = get_result(fixed_data['result'])
+    won = p1 if result == 1 else p2
+
+    data.append(file_name)
+    data.append(index_date)
+    data.append(won)
+    data.append(result)
+    data.append(status)
+    data.append(url)
+
+    if not conn.check_row('matches', 'file_name', file_name):
+        data = tuple(data)
+        conn.insert_data(insert_match_sql(), data)
+    else:
+        data.append(file_name)
+        data  =tuple(data)
+        conn.update_data(update_match_sql(), data)
 
 def create_match_files(match_urls, current, force_write = False):
     if len(match_urls) == 0:
-        
+        if conn.check_row('matches', 'status', 'live'):
+            rows = conn.select_data(force_write_sql(), 'live')
+            for row in rows:
+                create_match_files([row[-1]], '', True)
         print("No Live Matches going on right now")
         return False
 
@@ -25,18 +101,24 @@ def create_match_files(match_urls, current, force_write = False):
             continue
         file_name = get_file_name(fixed_data)
         
-        file_exists = os.path.exists(f'./data/{file_name}.csv')
-
-        if (not file_exists or force_write) and not current:
-            write_matches_csv(fixed_data, file_name, 'finished')
-        if current:
-            write_matches_csv(fixed_data, file_name, 'live')
-        if not os.path.exists(f'./data/{file_name}.csv') or current or force_write:       
+        if not force_write:
+            write_data(file_name, fixed_data, current)
+        elif force_write:
+            insert_data(fixed_data, file_name, 'finished', '')
             finished_df[get_col_names()].to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
-        
         time.sleep(0.5)
 
     return True
+
+def write_data(file_name, fixed_data, current):
+    file_exists = os.path.exists(f'./data/{file_name}.csv')
+    if not file_exists and not current:
+        insert_data(fixed_data, file_name, 'finished', '')
+    if current:
+        insert_data(fixed_data, file_name, 'live', match)
+    if not file_exists or current:       
+        finished_df[get_col_names()].to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
+    
 
 def get_matches(finished_url, date, current = False):
     if not current:

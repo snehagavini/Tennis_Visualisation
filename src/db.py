@@ -13,20 +13,46 @@ class db(object):
             print(sqlite3.version)
         except Error as e:
             print(e)
-        
-        return self.conn
 
+    def check_row(self, table_name, file_name, condition):
+        c = self.conn.cursor()
+        c.execute(''' SELECT count(*) FROM {} WHERE {}='{}' '''.format(table_name, condition, file_name))
+        if c.fetchone()[0]==1 :
+            return True
+        return False
+        
     def create_table(self, create_table_sql):
         """
         Create a table from the create_table_sql statement
         :param create_table_sql: a CREATE TABLE statement
         :return:
         """
-
         try:
             c = self.conn.cursor()
             c.execute(create_table_sql)
         except Error as e:
             print(e)
+        
+        self.con.commit()
     
-    def insert_data()
+    def insert_data(self, sql, data):
+        cur = self.conn.cursor()
+        cur.execute(sql, data)
+        self.conn.commit()
+        return cur.lastrowid
+
+    def update_data(self, sql, match):
+        c = self.conn.cursor()
+        curr.execute(sql, match)
+        self.conn.commit()
+    
+    def select_data(self,sql,condition):
+        """
+        Query tasks by condition
+        """
+        cur = self.conn.cursor()
+        cur.execute(sql, (condition,))
+
+        rows = cur.fetchall()
+
+        return rows
