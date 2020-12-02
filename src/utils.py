@@ -60,7 +60,7 @@ def get_tournaments(live):
     elif not live:
         tournaments = conn.select_data(tournament_sql(), ('finished',))
 
-    tournaments = pd.DataFrame(tournaments, columns = ['Tournament','Date','Round','Player_1','Player_2','file','index','won','result','status','url'])
+    tournaments = pd.DataFrame(tournaments, columns = ['Tournament','Date','Round','Player_1','Player_2','file_name','index_date','won','result','status','url'])
     tourn_list = tournaments['Tournament'].value_counts().index.to_list()
     for tournament in tourn_list:
         results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament])
@@ -76,7 +76,7 @@ def get_matches(tournament, live, **kwargs):
         tournaments = conn.select_data(matches_sql(), (tournament, 'live'))
     elif not live:
         tournaments = conn.select_data(matches_sql(), (tournament, 'finished'))
-    tournaments = pd.DataFrame(tournaments, columns = ['Tournament','Date','Round','Player_1','Player_2','file','index','won','result','status','url'])
+    tournaments = pd.DataFrame(tournaments, columns = ['Tournament','Date','Round','Player_1','Player_2','file_name','index_date','won','result','status','url'])
     results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament], False)
     
     return results

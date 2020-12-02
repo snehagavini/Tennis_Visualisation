@@ -30,4 +30,4 @@ def display_page(pathname):
     return df.to_dict("records"), [{"name": i, "id": i} for i in df.columns]
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0',debug=True)
