@@ -8,7 +8,7 @@ import csv
 import os
 from datetime import datetime, timedelta
  
-import db
+from db import db
 
 def create_database():
     """
@@ -34,7 +34,7 @@ def create_match_sql():
             );"""
 
 def insert_match_sql():
-    return ''' INSERT INTO projects(Tournament, Date, Round, Player_1, Player_2, file_name, index-date, won, result, status, url)
+    return ''' INSERT INTO matches(Tournament, Date, Round, Player_1, Player_2, file_name, index_date, won, result, status, url)
               VALUES(?,?,?,?,?,?,?,?,?,?,?) '''
 
 def update_match_sql():
@@ -45,11 +45,11 @@ def update_match_sql():
                     Player_1 = ?,
                     Player_2 = ?,
                     file_name = ?,
-                    index-date = ?,
+                    index_date = ?,
                     won = ?,
                     result = ?,
                     status = ?,
-                    url = ?,
+                    url = ?
               WHERE file_name = ?'''
 
 def force_write_sql():
@@ -67,7 +67,7 @@ def insert_data(fixed_data, file_name, status, url):
     index_date.reverse()
     index_date = '-'.join(index_date)
     result = get_result(fixed_data['result'])
-    won = p1 if result == 1 else p2
+    won = fixed_data['player1_name'] if result == 1 else fixed_data['player2_name']
 
     data.append(file_name)
     data.append(index_date)
@@ -81,7 +81,7 @@ def insert_data(fixed_data, file_name, status, url):
         conn.insert_data(insert_match_sql(), data)
     else:
         data.append(file_name)
-        data  =tuple(data)
+        data = tuple(data)
         conn.update_data(update_match_sql(), data)
 
 def create_match_files(match_urls, current, force_write = False):
@@ -102,7 +102,7 @@ def create_match_files(match_urls, current, force_write = False):
         file_name = get_file_name(fixed_data)
         
         if not force_write:
-            write_data(file_name, fixed_data, current)
+            write_data(file_name, fixed_data, current, match, finished_df)
         elif force_write:
             insert_data(fixed_data, file_name, 'finished', '')
             finished_df[get_col_names()].to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
@@ -110,7 +110,7 @@ def create_match_files(match_urls, current, force_write = False):
 
     return True
 
-def write_data(file_name, fixed_data, current):
+def write_data(file_name, fixed_data, current, match, finished_df):
     file_exists = os.path.exists(f'./data/{file_name}.csv')
     if not file_exists and not current:
         insert_data(fixed_data, file_name, 'finished', '')
@@ -281,30 +281,6 @@ def process_string(str):
 
     return result
 
-
-def write_matches_csv(fixed_data, file_name, status):
-    # get the data say tour,date, round,p1,p2 from the fixed_data
-    tour = fixed_data['tournament']
-    date = fixed_data['date']
-    rnd = fixed_data['round']
-    p1 = fixed_data['player1_name']
-    p2 = fixed_data['player2_name']
-    index_date = date.split(' ')[0] + '20'
-    index_date = index_date.split('.')
-    index_date.reverse()
-    index_date = '-'.join(index_date)
-    result = get_result(fixed_data['result'])
-    won = p1 if result == 1 else p2
-
-
-    match_row = pd.DataFrame.from_records([[tour, date, rnd, p1, p2, file_name, index_date, won, fixed_data['result']]], columns = ['Tournament', 'Date', 'Round', 'Player 1', 'Player 2', 'file_name', 'index_date', 'won', 'result'])
-
-
-    if status == 'finished' and os.path.exists(f'./data/{status}.csv'):       
-        match_row.to_csv(f'./data/{status}.csv', index = False, header = False, mode='a')
-    elif :
-        match_row.to_csv(f'./data/matches.csv', index = False, header = True, mode='w')
-
 def get_result(result):
     result = result.replace(" ","")
     results = result.split(',')
@@ -367,7 +343,7 @@ def main():
 
     url = 'http://www.tennislive.net/'
     curr_url, fin_url = get_menu_links(url)
-
+    create_database()
     if args.live:
         flag = True
         while flag:
@@ -393,6 +369,6 @@ def main():
         create_match_files([args.url], current=True)
     else:
         print("Usage: python src\scrapper.py -h")
-
+    conn.close()
 if __name__ == "__main__":
     main()

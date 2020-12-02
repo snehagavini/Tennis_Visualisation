@@ -14,7 +14,7 @@ class db(object):
         except Error as e:
             print(e)
 
-    def check_row(self, table_name, file_name, condition):
+    def check_row(self, table_name, condition, file_name ):
         c = self.conn.cursor()
         c.execute(''' SELECT count(*) FROM {} WHERE {}='{}' '''.format(table_name, condition, file_name))
         if c.fetchone()[0]==1 :
@@ -33,7 +33,7 @@ class db(object):
         except Error as e:
             print(e)
         
-        self.con.commit()
+        self.conn.commit()
     
     def insert_data(self, sql, data):
         cur = self.conn.cursor()
@@ -42,7 +42,7 @@ class db(object):
         return cur.lastrowid
 
     def update_data(self, sql, match):
-        c = self.conn.cursor()
+        curr = self.conn.cursor()
         curr.execute(sql, match)
         self.conn.commit()
     
@@ -56,3 +56,5 @@ class db(object):
         rows = cur.fetchall()
 
         return rows
+    def close(self):
+        self.conn.close()
