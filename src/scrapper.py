@@ -1,6 +1,7 @@
 import pandas as pd
 import argparse
-
+import sqlite3
+from sqlite3 import Error
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 from string import punctuation
@@ -8,23 +9,30 @@ import time
 import csv 
 import os
 from datetime import datetime, timedelta
+ 
 
-def create_match_files(match_urls, current):
+def create_match_files(match_urls, current, force_write = False):
     if len(match_urls) == 0:
+        
         print("No Live Matches going on right now")
         return False
 
     # for each url get a df
     for match in match_urls:
         finished_df, fixed_data = get_rows(match)
+
         if not fixed_data:
             continue
         file_name = get_file_name(fixed_data)
         
-        if not os.path.exists(f'./data/{file_name}.csv'):
-            write_matches_csv(fixed_data, file_name)
-        if not os.path.exists(f'./data/{file_name}.csv') or current:       
-            finished_df.to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
+        file_exists = os.path.exists(f'./data/{file_name}.csv')
+
+        if (not file_exists or force_write) and not current:
+            write_matches_csv(fixed_data, file_name, 'finished')
+        if current:
+            write_matches_csv(fixed_data, file_name, 'live')
+        if not os.path.exists(f'./data/{file_name}.csv') or current or force_write:       
+            finished_df[get_col_names()].to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
         
         time.sleep(0.5)
 
@@ -85,12 +93,11 @@ def merge_static_dynamic(set,score,points,fixed_data):
                 'result': fixed_data['result']
                 }
     for i in range(len(points)-1):
+        row_list['break_point'] = ''
         if 'BP' in points[i]:
             row_list['break_point'] = 'BP'
         row_list['points'] = points[i].replace('[BP]','')
-        
         result_list.append(list(row_list.values()))
-    
     return result_list
         
 
@@ -101,7 +108,12 @@ def get_static_data(match_html):
     static_cols = ['date','round','player1_name','player2_name', 'result','tournament','surface']
     for index in range(len(static_cols)):
         static_data[static_cols[index]] = match_details[index].text
+    static_data['result'] = get_clean_result(match_html)
     return static_data
+
+def get_clean_result(match_html):
+    span = match_html.find("span", {"id": "score"})
+    return span.find(text=True, recursive= False)
 
 def get_dynamic_data(match_html):
     scores_div = match_html.find("div", {"id": "ff_p"})
@@ -188,7 +200,7 @@ def process_string(str):
     return result
 
 
-def write_matches_csv(fixed_data, file_name):
+def write_matches_csv(fixed_data, file_name, status):
     # get the data say tour,date, round,p1,p2 from the fixed_data
     tour = fixed_data['tournament']
     date = fixed_data['date']
@@ -199,15 +211,35 @@ def write_matches_csv(fixed_data, file_name):
     index_date = index_date.split('.')
     index_date.reverse()
     index_date = '-'.join(index_date)
+    result = get_result(fixed_data['result'])
+    won = p1 if result == 1 else p2
 
 
-    match_row = pd.DataFrame.from_records([[tour, date, rnd, p1, p2, file_name, index_date]], columns = ['Tournament', 'Date', 'Round', 'Player 1', 'Player 2', 'file_name', 'index_date'])
+    match_row = pd.DataFrame.from_records([[tour, date, rnd, p1, p2, file_name, index_date, won, fixed_data['result']]], columns = ['Tournament', 'Date', 'Round', 'Player 1', 'Player 2', 'file_name', 'index_date', 'won', 'result'])
 
 
-    if os.path.exists(f'./data/matches.csv'):       
-        match_row.to_csv(f'./data/matches.csv', index = False, header = False, mode='a')
-    else:
+    if status == 'finished' and os.path.exists(f'./data/{status}.csv'):       
+        match_row.to_csv(f'./data/{status}.csv', index = False, header = False, mode='a')
+    elif :
         match_row.to_csv(f'./data/matches.csv', index = False, header = True, mode='w')
+
+def get_result(result):
+    result = result.replace(" ","")
+    results = result.split(',')
+
+    count = 0
+    for res in results:
+        games = res.split('-')
+        if games[0] > games[1]:
+            count += 1
+        elif games[0] < games[1]:
+            count -=1
+    
+    if count > 0:
+        return 1
+    
+    return 2
+
 
 def check_date(str):
     try:

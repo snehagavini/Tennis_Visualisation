@@ -15,7 +15,7 @@ def live_tournaments():
 
 @app.route("/finished_tournaments")
 def finished_tournaments():
-    default_start = utils.get_past_date(4)
+    default_start = utils.get_past_date(30)
     default_end = utils.get_past_date(1)
     tournaments = utils.get_tournaments(live = False, start = default_start, end = default_end)
     return render_template("tournament.html", title = 'Finished Tournaments', tournaments = tournaments, matches_url = 'finished_matches')
@@ -32,7 +32,7 @@ def live_matches(tournament):
 
 @app.route("/finished_matches/<tournament>")
 def finished_matches(tournament):
-    default_start = utils.get_past_date(4)
+    default_start = utils.get_past_date(30)
     default_end = utils.get_past_date(1)
     matches_list = utils.get_matches(tournament, live = False, start = default_start, end = default_end)
     return render_template("matches_list.html", matches = matches_list, title = tournament)
