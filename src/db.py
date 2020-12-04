@@ -17,7 +17,7 @@ class db(object):
     def check_row(self, table_name, condition, file_name ):
         c = self.conn.cursor()
         c.execute(''' SELECT count(*) FROM {} WHERE {}='{}' '''.format(table_name, condition, file_name))
-        if c.fetchone()[0]==1 :
+        if c.fetchone()[0]>=1 :
             return True
         return False
         

@@ -37,7 +37,7 @@ def insert_match_sql():
     return ''' INSERT INTO matches(Tournament, Date, Round, Player_1, Player_2, file_name, index_date, won, result, status, url)
               VALUES(?,?,?,?,?,?,?,?,?,?,?) '''
 
-def update_match_sql():
+def update_match_sql(condition):
     return ''' UPDATE matches
                SET  Tournament = ?,
                     Date = ?,
@@ -50,12 +50,12 @@ def update_match_sql():
                     result = ?,
                     status = ?,
                     url = ?
-              WHERE file_name = ?'''
+              WHERE {} = ?'''.format(condition)
 
 def force_write_sql():
     return "SELECT * FROM matches WHERE status=?"
 
-def insert_data(fixed_data, file_name, status, url):
+def insert_data(fixed_data, file_name, status, url, condition='file_name'):
     keys = ['tournament','date','round','player1_name','player2_name']
     data = list()
     for i in keys:
@@ -80,9 +80,12 @@ def insert_data(fixed_data, file_name, status, url):
         data = tuple(data)
         conn.insert_data(insert_match_sql(), data)
     else:
-        data.append(file_name)
+        if condition == 'file_name':
+            data.append(file_name)
+        elif condition == 'status':
+            data.append('live')
         data = tuple(data)
-        conn.update_data(update_match_sql(), data)
+        conn.update_data(update_match_sql(condition), data)
 
 def move_live(match_urls):
 
@@ -97,7 +100,6 @@ def move_live(match_urls):
         for url in db_urls:
             if url not in match_urls:
                 moved_urls.append(url)
-        
         for url in moved_urls:
             create_match_files([url], False, True)
 
@@ -108,7 +110,6 @@ def move_all_live():
             create_match_files([row[-1]], False, True)        
 
 def create_match_files(match_urls, current, force_write = False):
-    
     if current:
         move_live(match_urls)
 
@@ -128,7 +129,7 @@ def create_match_files(match_urls, current, force_write = False):
         if not force_write:
             write_data(file_name, fixed_data, current, match, finished_df)
         elif force_write:
-            insert_data(fixed_data, file_name, 'finished', '')
+            insert_data(fixed_data, file_name, 'finished', '', 'status')
             finished_df[get_col_names()].to_csv(f'./data/{file_name}.csv', index = False, header = True, mode='w')
         time.sleep(0.5)
 
