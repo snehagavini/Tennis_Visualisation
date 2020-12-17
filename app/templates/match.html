@@ -4,6 +4,15 @@
         <title>Test application</title>
         <link rel="stylesheet" type="text/css" href = {{ url_for('static', filename='match.css') }} />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $(".search form select").click(function(){
+                var text = $(this).text();
+                $(".search select input").attr('placeholder', 'Enter ' + text);
+                });
+            });
+        </script>
         <meta http-equiv="refresh" content="40">      
     </head>
     <body>
@@ -20,7 +29,7 @@
                         <option value="tournament">Tournament</option>
                         <option value="date">Date</option>
                     </select>
-                    <input type="text" placeholder="Player name.." name="query">
+                    <input type="text" placeholder="Enter Playername" name="query">
                     <button type="submit"><i class="fa fa-search"></i></button>
                 </form>
             </div>
