@@ -3,6 +3,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from .db import db
+from src import es
+import json
 
 def create_database():
     """
@@ -80,4 +82,50 @@ def get_matches(tournament, live, **kwargs):
     results[tournament] = get_matches_list(tournaments[tournaments['Tournament'] == tournament], False)
     
     return results
+
+def get_search_results(query, field):
+    es_conn = es.connect_elasticsearch()
+    body = None
+    matches = list()
+    if field == 'round':
+        body = { "query": {
+            "multi_match" : {
+                "query":    query, 
+                "fields": [ "round" ] 
+            }
+            }
+        }
+    elif field == 'player':
+        body = { "query": {
+            "multi_match" : {
+                "query":    query, 
+                "fields": [ "Player_1", "Player_2" ] 
+            }
+            }
+        }
+    elif field == 'date':
+        body = { "query": {
+            "multi_match" : {
+                "query":    query, 
+                "fields": [ "Date" ] 
+            }
+            }
+        }
+    elif field == 'tournament':
+        body = { "query": {
+            "multi_match" : {
+                "query":    query, 
+                "fields": [ "tournament" ] 
+            }
+            }
+        }
+    
+    if body:
+        results = es.search(es_conn, 'matches', body )
+        for i in results['hits']['hits']:
+            matches.append(i['_source'])
+        es.close_connection(es_conn)
+    print(matches)
+    to_return = {query: matches}
+    return to_return
     
