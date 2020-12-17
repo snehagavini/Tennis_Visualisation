@@ -7,21 +7,26 @@
         <meta http-equiv="refresh" content="30">      
     </head>
     <body>
-        <div class="navbar">
-            <a href=#>{{ title }}</a>
-            <form method='POST' action="{{ url_for('search') }}">
-                <select id="search_options" name="fields">
-                    <option value="player">Player</option>
-                    <option value="round">Round</option>
-                    <option value="tournament">Tournament</option>
-                    <option value="date">Date</option>
-                </select>
-                <input type="text" placeholder="Player name.." name="query">
-                <button type="submit"><i class="fa fa-search"></i></button>
-            </form>
-            <a class ="right" href="{{ url_for('live_tournaments') }}">Live Tournaments</a>
-            <a class ="right" href="{{ url_for('finished_tournaments') }}">Finished Tournaments</a>
+        <div id="navlist">
+            <a class= 'home' href=#>{{ title }}</a>
             <a class ="right" href="{{ url_for('index') }}">Home</a>
+            {% if title == 'Finished Tournaments' %}
+                <a class ="right" href="{{ url_for('live_tournaments') }}">Live Tournaments</a>
+            {% elif title == 'Live Tournaments' %}
+                <a class ="right" href="{{ url_for('finished_tournaments') }}">Finished Tournaments</a>
+            {% endif %}
+            <div class='search'>
+                <form method='POST' action="{{ url_for('search') }}">
+                    <select id="search_options" name="fields">
+                        <option value="player">Player</option>
+                        <option value="round">Round</option>
+                        <option value="tournament">Tournament</option>
+                        <option value="date">Date</option>
+                    </select>
+                    <input type="text" placeholder="Player name.." name="query">
+                    <button type="submit"><i class="fa fa-search"></i></button>
+                </form>
+            </div>
         </div>
         {% for tournament, results in tournaments.items() %}
         <div class="tournament">
