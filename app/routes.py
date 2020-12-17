@@ -1,4 +1,4 @@
-from flask import render_template, url_for
+from flask import render_template, url_for, request
 from app import app
 from src import utils
 
@@ -30,3 +30,12 @@ def live_matches(tournament):
 def finished_matches(tournament):
     matches_list = utils.get_matches(tournament, live = False)
     return render_template("matches_list.html", matches = matches_list, title = tournament)
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method == 'POST':
+        field = request.form.get('fields')
+        query = request.form.get('query')
+        matches_list = utils.get_search_results(query, field)
+        return render_template("search_results.html", matches = matches_list, title = query)
+    return render_template("index.html")
