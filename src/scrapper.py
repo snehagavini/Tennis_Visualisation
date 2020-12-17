@@ -7,8 +7,10 @@ import time
 import csv 
 import os
 from datetime import datetime, timedelta
+import json
  
 from db import db
+import es
 
 def create_database():
     """
@@ -17,6 +19,55 @@ def create_database():
     global conn
     conn = db('./data/db/matches.db')
     conn.create_table(create_match_sql())
+
+def create_es_index():
+    """
+    Initialize a database and create the table if not present and return True
+    """
+    global es_conn
+    es_conn = es.connect_elasticsearch()
+    created = es.create_index(es_conn, 'matches', index_settings())
+
+def index_settings():
+    settings = {
+        "settings": {
+            "number_of_shards": 1,
+            "number_of_replicas": 0
+        },
+        "mappings": {
+            "matches": {
+                "dynamic": "strict",
+                "properties": {
+                    "Date": {
+                        "type": "text",
+                        "analyzer": "english"
+                    },
+                    "Player_1": {
+                        "type": "text",
+                        "analyzer": "english"
+                    },
+                    "Player_2": {
+                        "type": "text",
+                        "analyzer": "english"
+                    },
+                    "round": {
+                        "type": "text",
+                        "analyzer": "english"
+                    },
+                    "file_name": {
+                        "type": "text",
+                        "analyzer": "english"
+                    },
+                    "tournament": {
+                        "type": "text",
+                        "analyzer": "english"
+                    },
+                }
+            }
+        }
+    }
+
+    return settings
 
 def create_match_sql():
     return """CREATE TABLE IF NOT EXISTS matches (
@@ -137,6 +188,15 @@ def create_match_files(match_urls, current, force_write = False):
 
 def write_data(file_name, fixed_data, current, match, finished_df):
     file_exists = os.path.exists(f'./data/{file_name}.csv')
+    if not file_exists:
+        record = dict()
+        record['Date'] = fixed_data['date']
+        record['Player_1'] = fixed_data['player1_name']
+        record['Player_2'] = fixed_data['player2_name']
+        record['round'] = fixed_data['round']
+        record['file_name'] = file_name
+        record['tournament'] = fixed_data['tournament']
+        es.store_record(es_conn, index_name='matches', doc_type = 'matches', record = record)
     if not file_exists and not current:
         insert_data(fixed_data, file_name, 'finished', '')
     if current:
@@ -372,6 +432,7 @@ def main():
     url = 'http://www.tennislive.net/'
     curr_url, fin_url = get_menu_links(url)
     create_database()
+    create_es_index()
     if args.live:
         flag = True
         while flag:
@@ -398,5 +459,6 @@ def main():
     else:
         print("Usage: python src\scrapper.py -h")
     conn.close()
+    es.close_connection(es_conn)
 if __name__ == "__main__":
     main()
